@@ -3,8 +3,11 @@
 #!/bin/bash
 
 AUTO_RUN=/etc/profile.d/naspi.sh
-# USER_RUN_FILE=/etc/bash.bashrc
-USER_RUN_FILE=${AUTO_RUN}
+
+if [ -e $AUTO_RUN ]; then
+	sudo rm $AUTO_RUN -f
+fi
+
 echo '#!/bin/bash
 
 SHUTDOWN=4
@@ -42,14 +45,13 @@ while [ 1 ]; do
   fi
 done' > /etc/x-c1-pwr.sh
 sudo chmod +x /etc/x-c1-pwr.sh
-#sudo sed -i '$ i /etc/x-c1-pwr.sh &' ${USER_RUN_FILE}
+#sudo sed -i '$ i /etc/x-c1-pwr.sh &' ${AUTO_RUN}
 
 #x-c1 full shutdown through python
 
 #x-c1 full shutdown through shell
 #!/bin/bash
-echo '
-#!/usr/bin/env python
+echo '#!/usr/bin/env python
 import RPi.GPIO as GPIO
 import time
 
@@ -63,7 +65,7 @@ GPIO.output(GPIO_PORT, GPIO.HIGH)
 time.sleep(3)
 GPIO.output(GPIO_PORT, GPIO.LOW)
 GPIO.cleanup()
-' >> /etc/x-c1-softsd.py
+' > /etc/x-c1-softsd.py
 sudo echo "alias xoff='python /etc/x-c1-softsd.py'" >> ${AUTO_RUN}
 
 echo '#!/bin/bash
@@ -90,10 +92,10 @@ sudo chmod +x /usr/local/bin/x-c1-softsd.sh
 # sudo echo "alias xoff='sudo x-c1-softsd.sh'" >> ${AUTO_RUN}
 
 # create pigpiog service - begin
-service_name="/lib/systemd/system/pigpiod.service"
+SERVICE_NAME="/lib/systemd/system/pigpiod.service"
 # Create service file on system.
-if [ -e $service_name ]; then
-	sudo rm $service_name -f
+if [ -e $SERVICE_NAME ]; then
+	sudo rm $SERVICE_NAME -f
 fi
 
 sudo echo '[Unit]
@@ -104,7 +106,7 @@ ExecStop=/bin/systemctl kill pigpiod
 Type=forking
 [Install]
 WantedBy=multi-user.target
-' >> ${service_name}
+' >> ${SERVICE_NAME}
 
 # create pigpiog service - begin
 
@@ -113,6 +115,7 @@ sudo systemctl enable pigpiod
 CUR_DIR=$(pwd)
 sudo echo "python ${CUR_DIR}/fan.py&"  >> ${AUTO_RUN}
 
+sudo chmod +x ${AUTO_RUN}
 sudo pigpiod
 python ${CUR_DIR}/fan.py&
 
